@@ -18,6 +18,7 @@ class ChatRequest(BaseModel):
     max_output_tokens: int = 1024
     top_p: float = 0.95
     top_k: int = 40
+    model: str = "gemini-2.5-flash"
 
 class ChatResponse(BaseModel):
     response: str

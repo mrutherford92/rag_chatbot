@@ -95,29 +95,20 @@ class RAGService:
               temperature: float = 0.7, 
               max_output_tokens: int = 1024, 
               top_p: float = 0.95, 
-              top_k: int = 40) -> str:
+              top_k: int = 40,
+              model_name: str = "gemini-2.5-flash") -> str:
         """
         Executes a query against the LLM, optionally using RAG.
-        
-        Args:
-            input_text (str): The raw user query (used for retrieval).
-            wrapped_query (str, optional): The full prompt to send to generation (includes context/instructions).
-            use_rag (bool): Whether to retrieve context from the vector store.
-            temperature (float): LLM creativity parameter.
-            max_output_tokens (int): Response length limit.
-            top_p (float): Nucleus sampling parameter.
-            top_k (int): Top-k sampling parameter.
-
-        Returns:
-            str: The LLM's response.
         """
         
-        # 1. Bind Parameters Dynamically
-        dynamic_llm = self.llm.bind(
+        # 1. Initialize LLM Dynamically (to support model switching)
+        llm = ChatGoogleGenerativeAI(
+            model=model_name,
             temperature=temperature,
             max_output_tokens=max_output_tokens,
             top_p=top_p,
-            top_k=top_k
+            top_k=top_k,
+            convert_system_message_to_human=True
         )
         
         # 2. Define Prompts
@@ -155,12 +146,12 @@ class RAGService:
             context_str = "\n\n".join(doc.page_content for doc in docs)
 
             # B. Generate using WRAPPED PROMPT (generation_input)
-            chain = rag_prompt | dynamic_llm | StrOutputParser()
+            chain = rag_prompt | llm | StrOutputParser()
             return chain.invoke({"context": context_str, "input": generation_input})
             
         else:
             # Basic Chain (No Retrieval)
-            chain = basic_prompt | dynamic_llm | StrOutputParser()
+            chain = basic_prompt | llm | StrOutputParser()
             return chain.invoke({"input": generation_input})
 
 # Global Instance

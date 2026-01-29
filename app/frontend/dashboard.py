@@ -44,8 +44,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title(":material/smart_toy: Medical AI Assistant")
-st.caption("Powered by Gemini 2.5 Flash & LangChain")
+
+# --- HEADER ---
+col_h1, col_h2 = st.columns([3, 1])
+with col_h1:
+    st.title(":material/smart_toy: Medical AI Assistant")
+with col_h2:
+    selected_model = st.selectbox(
+        "Model", 
+        ["gemini-2.5-flash", "gemini-3-pro-preview"],
+        index=0,
+        label_visibility="collapsed"
+    )
 
 # --- PROMPT TEMPLATES ---
 PROMPT_TEMPLATES: dict[str, str] = {
@@ -370,7 +380,9 @@ if prompt := st.chat_input("Type your medical question..."):
                 "temperature": temperature,
                 "max_output_tokens": int(max_output_tokens),
                 "top_p": top_p,
-                "top_k": top_k
+                "top_p": top_p,
+                "top_k": top_k,
+                "model": selected_model
             }
             
             # NOTE: Backend expects 'query' as raw and 'wrapped_query' as templated.

@@ -113,6 +113,7 @@ async def chat_endpoint(request: ChatRequest):
         temperature=request.temperature,
         max_output_tokens=request.max_output_tokens,
         top_p=request.top_p,
-        top_k=request.top_k
+        top_k=request.top_k,
+        model_name=request.model
     )
     return ChatResponse(response=answer)
