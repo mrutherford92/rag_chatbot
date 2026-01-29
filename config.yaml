@@ -1,0 +1,20 @@
+server:
+  host: "127.0.0.1"
+  port: 8000
+  api_url: "http://127.0.0.1:8000"
+
+paths:
+  data_dir: "data/pdfs"
+  index_dir_pdfs: "data/faiss_index/pdfs"
+  index_dir_examples: "data/faiss_index/examples"
+  few_shot_data: "data/few_shot_medical.jsonl"
+  
+models:
+  embedding_model: "models/text-embedding-004"
+
+documentation:
+  hallucination_doc: "data/theory/hallucinations.md"
+  temperature_doc: "data/theory/temperature.md"
+  sample_questions_doc: "data/sample_questions.md"
+  prompting_doc: "data/theory/prompting.md"
+  rag_concepts_doc: "data/theory/rag_concepts.md"
