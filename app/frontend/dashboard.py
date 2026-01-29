@@ -256,6 +256,14 @@ with st.sidebar:
 
     # Prompt Engineering
     st.subheader("Prompt Engineering")
+    
+    use_rag = st.toggle(
+        "Search Medical Database", 
+        value=True, 
+        key="rag_toggle",
+        help="**Truth Toggle**\n\n* **ON**: Reads your local PDFs to find the answer. Minimizes hallucinations.\n* **OFF**: Uses only the AI's general training (like standard ChatGPT)."
+    )
+
     template_style = st.selectbox(
         "Prompt Template",
         list(PROMPT_TEMPLATES.keys()),
@@ -264,21 +272,16 @@ with st.sidebar:
     )
     
     target_source = ""
-    if template_style == "Source Grounding (Pre-training)":
+    # Show Target Source if explicitly using the Source Grounding template OR if RAG is disabled (User preference)
+    if template_style == "Source Grounding (Pre-training)" or not use_rag:
         target_source = st.selectbox(
             "Target Source", 
             ["CDC", "WHO", "Mayo Clinic"],
             key="target_source_selector",
             help="**Authority Limiter**\n\nForces the AI to only cite information that could be attributed to this organization."
         )
-        st.info("Database Search is disabled.", icon=":material/search_off:")
-    
-    use_rag = st.toggle(
-        "Search Medical Database", 
-        value=True, 
-        key="rag_toggle",
-        help="**Truth Toggle**\n\n* **ON**: Reads your local PDFs to find the answer. Minimizes hallucinations.\n* **OFF**: Uses only the AI's general training (like standard ChatGPT)."
-    )
+        if not use_rag:
+             st.info("Database Search is disabled. Using Pre-training knowledge.", icon=":material/search_off:")
 
     # Active Prompt Viewer
     if st.toggle("View Active System Prompt", value=False):
@@ -351,7 +354,19 @@ for message in st.session_state.messages:
 if prompt := st.chat_input("Type your medical question..."):
     
     # 1. Apply Template Logic
-    raw_template = PROMPT_TEMPLATES[template_style]
+    # SMART OVERRIDE: If user picked a source (e.g. CDC) but didn't switch template, fix it.
+    effective_template = template_style
+    
+    if target_source and "{source}" not in PROMPT_TEMPLATES[template_style]:
+        effective_template = "Source Grounding (Pre-training)"
+        
+    # SMART OVERRIDE: If RAG is OFF and template is "Strict", switch to General Knowledge to avoid refusal.
+    if not use_rag and effective_template == "According-to (Standard)":
+        effective_template = "Source Grounding (Pre-training)"
+        if not target_source:
+            target_source = "General Medical Knowledge"
+
+    raw_template = PROMPT_TEMPLATES[effective_template]
     
     if "{source}" in raw_template:
         source_text = target_source if target_source else "MEDICAL SCIENCE"
