@@ -18,10 +18,11 @@ from typing import Any
 from app.core.config import (
     API_URL, 
     DOC_HALLUCINATION, 
-    DOC_TEMPERATURE, 
+    DOC_MODEL_PARAMETERS, 
     DOC_SAMPLE_QUESTIONS,
     DOC_PROMPTING,
-    DOC_RAG_CONCEPTS
+    DOC_RAG_CONCEPTS,
+    DOC_UI_GUIDE
 )
 
 st.set_page_config(page_title="Medical AI Assistant", page_icon="app/frontend/assets/favicon.png", layout="wide")
@@ -132,12 +133,7 @@ with st.sidebar:
         except Exception:
              st.error("Doc not found")
 
-    with st.expander("Temperature & Tokens", icon=":material/tune:"):
-        try:
-            with open(DOC_TEMPERATURE, "r") as f:
-                st.markdown(f.read())
-        except Exception:
-             st.error("Doc not found")
+
 
     with st.expander("RAG Concepts", icon=":material/school:"):
         try:
@@ -146,9 +142,23 @@ with st.sidebar:
         except Exception:
              st.error("Doc not found")
 
-    with st.expander("Prompting Strategies", icon=":material/lightbulb:"):
+    with st.expander("Prompt Strategies", icon=":material/lightbulb:"):
         try:
             with open(DOC_PROMPTING, "r") as f:
+                st.markdown(f.read())
+        except Exception:
+             st.error("Doc not found")
+
+    with st.expander("Model Parameters", icon=":material/tune:"):
+        try:
+            with open(DOC_MODEL_PARAMETERS, "r") as f:
+                st.markdown(f.read())
+        except Exception:
+             st.error("Doc not found")
+
+    with st.expander("UI Guide", icon=":material/map:"):
+        try:
+            with open(DOC_UI_GUIDE, "r") as f:
                 st.markdown(f.read())
         except Exception:
              st.error("Doc not found")
@@ -240,23 +250,25 @@ with st.sidebar:
         "Prompt Template",
         list(PROMPT_TEMPLATES.keys()),
         key="prompt_template_selector",
-        help="Choose the strategy for the 'Insert Template' button."
+        help="**Strategy Selector**\n\nChoose 'how' the AI should think:\n* **Standard**: Just answers.\n* **Chain of Verification**: Double-checks its own specific facts.\n* **Medical Expert**: Mimics a doctor's tone using examples."
     )
     
-    target_source = ""
     target_source = ""
     if template_style == "Source Grounding (Pre-training)":
         target_source = st.selectbox(
             "Target Source", 
             ["CDC", "WHO", "Mayo Clinic"],
-            key="target_source_selector"
+            key="target_source_selector",
+            help="**Authority Limiter**\n\nForces the AI to only cite information that could be attributed to this organization."
         )
         st.info("Database Search is disabled.", icon=":material/search_off:")
-        # For this specific template, we force RAG off visually, or just let the user decode.
-        # But to be safe and allow user freedom (as requested), we just default it but let them toggle.
-        # Actually user complained about it disappearing. Let's show it.
     
-    use_rag = st.toggle("Search Medical Database", value=True, key="rag_toggle")
+    use_rag = st.toggle(
+        "Search Medical Database", 
+        value=True, 
+        key="rag_toggle",
+        help="**Truth Toggle**\n\n* **ON**: Reads your local PDFs to find the answer. Minimizes hallucinations.\n* **OFF**: Uses only the AI's general training (like standard ChatGPT)."
+    )
 
     # Active Prompt Viewer
     if st.toggle("View Active System Prompt", value=False):
@@ -279,10 +291,30 @@ with st.sidebar:
 
     # Model Parameters
     st.subheader("Model Parameters")
-    temperature = st.slider("Heat (Temperature)", 0.0, 2.0, 0.7, 0.1, key="temp_slider")
-    max_output_tokens = st.number_input("Max Output Tokens", 1, 8192, 2048, 128, key="tokens_slider")
-    top_p = st.slider("Top-P (Nucleus)", 0.0, 1.0, 0.95, 0.05, key="top_p_slider")
-    top_k = st.slider("Top-K", 1, 100, 40, 1, key="top_k_slider")
+    temperature = st.slider(
+        "Heat (Temperature)", 
+        0.0, 2.0, 0.7, 0.1, 
+        key="temp_slider",
+        help="**Creativity Control** (0.0 - 2.0)\n\n* **Low (0.2)**: Serious, factual, boring. Good for medicine.\n* **High (1.2)**: Creative, random, hallucinations likely."
+    )
+    max_output_tokens = st.number_input(
+        "Max Output Tokens", 
+        1, 8192, 2048, 128, 
+        key="tokens_slider",
+        help="**Length Limit**\n\nMaximum number of words the AI can generate.\n* 2048 ~= 1,500 words."
+    )
+    top_p = st.slider(
+        "Top-P (Nucleus)", 
+        0.0, 1.0, 0.95, 0.05, 
+        key="top_p_slider",
+        help="**Vocabulary Breadth** (0.0 - 1.0)\n\n* **Low (0.1)**: Only uses the most obvious words.\n* **High (0.9)**: Uses a wider vocabulary."
+    )
+    top_k = st.slider(
+        "Top-K", 
+        1, 100, 40, 1, 
+        key="top_k_slider",
+        help="**Choice Hard-Limit** (1 - 100)\n\nLimits the AI to choosing from only the top K most likely next words.\n* Lower = More predictable."
+    )
     
     st.markdown("---")
     

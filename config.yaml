@@ -14,7 +14,8 @@ models:
 
 documentation:
   hallucination_doc: "data/theory/hallucinations.md"
-  temperature_doc: "data/theory/temperature.md"
+  model_parameters_doc: "data/theory/model_parameters.md"
   sample_questions_doc: "data/sample_questions.md"
   prompting_doc: "data/theory/prompting.md"
   rag_concepts_doc: "data/theory/rag_concepts.md"
+  ui_guide_doc: "data/ui_guide.md"
