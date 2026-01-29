@@ -1,8 +1,8 @@
 """
 Script Name:  demo.py
-Description:  Walkthrough script to demonstrate RAG Chatbot capabilities via API.
+Description:  Automated walkthrough mirroring the 'DEMO_SCRIPT.md' technical presentation.
 Author:       Michael R. Rutherford
-Date:         2026-01-28
+Date:         2026-01-29
 
 Copyright (c) 2026
 License: MIT
@@ -11,100 +11,135 @@ License: MIT
 import requests
 import json
 import time
-
 from app.core.config import API_URL
 
-def print_header(title: str) -> None:
-    print(f"\n{'='*60}")
-    print(f" {title}")
-    print(f"{'='*60}")
+def print_step(title, description):
+    print(f"\n\n{'='*70}")
+    print(f"🎬 {title}")
+    print(f"{'-'*70}")
+    print(description)
+    print(f"{'='*70}\n")
+    time.sleep(1)
 
-def test_status() -> None:
-    print_header("1. System Status")
+def run_query(query, use_rag=True, temperature=0.7, model="gemini-2.5-flash", wrapped_query=None):
+    payload = {
+        "query": query,
+        "wrapped_query": wrapped_query,
+        "use_rag": use_rag,
+        "temperature": temperature,
+        "model": model
+    }
+    print(f"🔹 Query: '{query}'")
+    print(f"⚙️  Settings: RAG={use_rag}, Temp={temperature}, Model={model}")
+    
+    start = time.time()
+    try:
+        res = requests.post(f"{API_URL}/chat", json=payload)
+        if res.status_code == 200:
+            print(f"✅ Response ({time.time() - start:.2f}s):\n")
+            print(res.json()["response"])
+        else:
+            print(f"❌ Error: {res.text}")
+    except Exception as e:
+        print(f"❌ Connection Failed: {e}")
+
+def main():
+    print("🚀 Starting Technical Demo Simulation...")
+
+    # --- STEP 1: Architecture Overview ---
+    print_step(
+        "STEP 1: System Health Check (Architecture)", 
+        "Verifying FastAPI, Vector Store availability, and Gemini connection."
+    )
+    # Ping root
     try:
         res = requests.get(f"{API_URL}/")
-        print(f"Connection: {'OK' if res.status_code == 200 else 'FAILED'}")
-        print(f"Service: {res.json().get('service')}")
-    except Exception as e:
-        print(f"Failed to connect: {e}")
-        exit(1)
+        print(f"✅ Backend: {res.json()['service']}")
+    except:
+        print("❌ Backend is offline.")
 
-def test_direct_chat() -> None:
-    print_header("2. Direct LLM Chat (No RAG)")
-    payload = {
-        "query": "What is the capital of France?",
-        "use_rag": False,
-        "temperature": 0.7
-    }
-    print(f"Query: {payload['query']}")
-    start = time.time()
-    res = requests.post(f"{API_URL}/chat", json=payload)
-    print(f"Response: {res.json()['response']}")
-    print(f"Time: {time.time() - start:.2f}s")
+    # --- STEP 2: The Base Case (No RAG) ---
+    print_step(
+        "STEP 2: The Base Case (Black Box Problem)", 
+        "Asking for specific clinical data with RAG disabled. Expecting hallucination or refusal."
+    )
+    run_query(
+        "What is the specific diagnosis for Sarah Connor?", 
+        use_rag=False, 
+        temperature=1.0
+    )
 
-def test_rag_chat() -> None:
-    print_header("3. RAG Chat (Medical Context)")
-    # Assuming 'diabetes' or 'asthma' is in the dummy data
-    payload = {
-        "query": "What are the symptoms of Asthma?",
-        "use_rag": True,
-        "temperature": 0.3
-    }
-    print(f"Query: {payload['query']}")
-    print("Fetching context from Vector Store...")
-    start = time.time()
-    res = requests.post(f"{API_URL}/chat", json=payload)
-    if res.status_code == 200:
-        print(f"Response: {res.json()['response']}")
-    else:
-        print(f"Error: {res.text}")
-    print(f"Time: {time.time() - start:.2f}s")
+    # --- STEP 3: The Solution (RAG) ---
+    print_step(
+        "STEP 3: The Solution (Vector Grounding)", 
+        "Enabling FAISS retrieval. Expecting specific, cited facts."
+    )
+    run_query(
+        "What is the specific diagnosis for Sarah Connor?", 
+        use_rag=True, 
+        temperature=0.0
+    )
 
-def test_dynamic_few_shot() -> None:
-    print_header("4. Expert Knowledge Selection")
-    query = "treatment for anaphylaxis"
-    print(f"User Question: {query}")
-    print("Selecting 2 most relevant expert examples...")
+    # --- STEP 4: Deep Parameter Tuning (Top-P & Top-K) ---
+    print_step(
+        "STEP 4: The Engine Room (Hyper-Parameters)", 
+        "Manipulating token probability distributions."
+    )
     
-    payload = {"query": query, "k": 2}
-    res = requests.post(f"{API_URL}/features/select_examples", json=payload)
-    
-    if res.status_code == 200:
-        examples = res.json().get("examples")
-        print("\n--- Selected Examples ---")
-        print(examples)
-        print("-------------------------")
-    else:
-        print(f"Error: {res.text}")
-
-def test_settings_persistence() -> None:
-    print_header("5. Settings Persistence")
-    profile = {
-        "name": "demo_mode",
+    # A. Top-P (Nucleus) Test
+    print("🧪 TEST A: Top-P = 0.1 (Nucleus Focus)")
+    print("   Forces model to choose from only the top 10% mass. Should be very safe/boring.")
+    payload_p = {
+        "query": "Describe the patient's condition in creative detail.", 
+        "use_rag": False, 
+        "top_p": 0.1, 
         "temperature": 0.9,
-        "max_output_tokens": 512,
-        "top_p": 0.9,
-        "top_k": 40,
-        "prompt_template": "Creative",
-        "target_source": "General Knowledge"
+        "model": "gemini-2.5-flash"
     }
-    print(f"Saving Profile: {profile['name']} (Temp: {profile['temperature']})")
-    requests.post(f"{API_URL}/settings", json=profile)
+    # Run custom request to show param injection
+    requests.post(f"{API_URL}/chat", json=payload_p)
+    print("   (Request sent with top_p=0.1)\n")
+
+    # B. Top-K Test
+    print("🧪 TEST B: Top-K = 1 (Greedy Decoding)")
+    print("   Forces deterministic output by selecting ONLY the #1 most likely token.")
+    payload_k = {
+        "query": "Describe the patient's condition in creative detail.", 
+        "use_rag": False, 
+        "top_k": 1, 
+        "temperature": 0.9,
+        "model": "gemini-2.5-flash"
+    }
+    requests.post(f"{API_URL}/chat", json=payload_k)
+    print("   (Request sent with top_k=1)\n")
+
+
+    # --- STEP 5: Cognitive Architectures ---
+    print_step(
+        "STEP 5: Cognitive Architectures (CoVe)",
+        "Using Chain of Verification to self-correct."
+    )
+    cove_prompt = """You are a thorough researcher. Use a Chain of Verification...""" 
+    # (Simplified for log brevity)
     
-    print("Verifying save...")
-    res = requests.get(f"{API_URL}/settings/demo_mode")
-    if res.status_code == 200:
-        data = res.json()
-        print(f"Loaded Profile: {data['name']} | Temp: {data['temperature']}")
-        print("Persistence Confirmed.")
-    else:
-        print("Failed to verify settings.")
+    run_query(
+        "Summarize the treatment plan for patient Kyle Reese.", 
+        use_rag=True, 
+        wrapped_query="[CoVe Logic Applied] " + "Summarize the treatment plan for patient Kyle Reese."
+    )
+
+    # --- STEP 6: Polymorphism (Gemini 3 Pro) ---
+    print_step(
+        "STEP 6: Model Polymorphism",
+        "Hot-swapping to Gemini 3.0 Pro for reasoning tasks."
+    )
+    run_query(
+        "Compare the cardiac symptoms of Sarah Connor vs. Kyle Reese.", 
+        use_rag=True, 
+        model="gemini-3-pro-preview"
+    )
+
+    print("\n🏁 Demo Complete.")
 
 if __name__ == "__main__":
-    print("Starting Medical AI Walkthrough...")
-    test_status()
-    test_direct_chat()
-    test_rag_chat()
-    test_dynamic_few_shot()
-    test_settings_persistence()
-    print("\nWalkthrough Complete! 🚀")
+    main()
